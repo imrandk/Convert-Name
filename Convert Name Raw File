@@ -1,0 +1,108 @@
+function createConverter() {
+    // Open a new window and store its reference
+    const newWindow = window.open('', '_blank', 'width=800,height=600,top=100,left=100');
+    
+    // Ensure the new window is focused
+    if (newWindow) {
+        newWindow.focus();
+    } else {
+        return; // If the window couldn't be opened, exit the function
+    }
+
+    // Create a container for the UI elements
+    const container = newWindow.document.createElement('div');
+    container.style = `position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: flex-start; background: #f9f9f9; padding: 20px; border: 1px solid #ccc; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);`;
+
+    // Left Container (New Titles, Old Titles, Convert Button)
+    const leftContainer = newWindow.document.createElement('div');
+    leftContainer.style = `display: flex; flex-direction: column; align-items: center;`;
+
+    const newTitlesBox = createTextArea(newWindow.document, 'Enter new titles here (one per line)...', '#007bff', '150px');
+    const oldTitlesBox = createTextAreaWithCopy(newWindow.document, 'Enter old titles here (one per line)...', '#28a745', '150px');
+
+    const convertButton = createButton(newWindow.document, 'Convert', '#007bff', () => {
+        const newTitles = newTitlesBox.value.trim().split('\n').filter(title => title.trim() !== '');
+        const oldTitles = oldTitlesBox.querySelector('textarea').value.split('\n'); // Keep all lines, including empty ones
+
+        if (newTitles.length === 0 || oldTitles.length === 0 || newTitles.length !== oldTitles.filter(title => title.trim().startsWith('Title: ')).length) return;
+
+        let newIndex = 0;
+        oldTitlesBox.querySelector('textarea').value = oldTitles.map(oldTitle => 
+            oldTitle.trim().startsWith('Title: ') ? `Title: ${newTitles[newIndex++]}` : oldTitle
+        ).join('\n');
+    });
+
+    leftContainer.append(newTitlesBox, oldTitlesBox, convertButton);
+
+    // Right Container (Cleaned Titles, Clean Button)
+    const rightContainer = newWindow.document.createElement('div');
+    rightContainer.style = `display: flex; flex-direction: column; align-items: center;`;
+
+    const cleanedTitlesBox = createTextAreaWithCopy(newWindow.document, 'Cleaned titles will appear here...', '#dc3545', '320px'); // Adjusted height
+    const cleanButton = createButton(newWindow.document, 'Clean Titles', '#dc3545', () => {
+        cleanedTitlesBox.querySelector('textarea').value = cleanedTitlesBox.querySelector('textarea').value.split('\n')
+            .filter(line => line.trim().startsWith('Title: '))
+            .map(line => line.replace('Title: ', ''))
+            .join('\n\n');
+    });
+
+    rightContainer.append(cleanedTitlesBox, cleanButton);
+
+    // Append to Main Container and Body
+    container.append(leftContainer, rightContainer);
+    newWindow.document.body.append(container);
+    newWindow.document.body.style = `background: #f0f0f0; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh;`;
+}
+
+// Helper function to create a textarea
+function createTextArea(document, placeholder, borderColor, height) {
+    const textarea = document.createElement('textarea');
+    textarea.style = `width: 300px; height: ${height}; margin: 10px; padding: 10px; border: 2px solid ${borderColor}; border-radius: 5px; font-size: 16px;`;
+    textarea.placeholder = placeholder;
+    return textarea;
+}
+
+// Helper function to create a textarea with a copy button
+function createTextAreaWithCopy(document, placeholder, borderColor, height) {
+    const container = document.createElement('div');
+    container.style = `position: relative; width: 300px; margin: 10px;`;
+
+    const textarea = createTextArea(document, placeholder, borderColor, height);
+    const copyButton = document.createElement('button');
+    copyButton.textContent = 'Copy';
+    copyButton.style = `position: absolute; top: 10px; right: 10px; padding: 5px 10px; border: none; border-radius: 5px; background: ${borderColor}; color: #fff; font-size: 12px; cursor: pointer;`;
+    copyButton.onclick = () => copyText(textarea, document);
+
+    container.append(textarea, copyButton);
+    return container;
+}
+
+// Helper function to create a button
+function createButton(document, text, bgColor, onClick) {
+    const button = document.createElement('button');
+    button.textContent = text;
+    button.style = `margin: 10px; padding: 10px 20px; border: none; border-radius: 5px; background: ${bgColor}; color: #fff; font-size: 16px; cursor: pointer;`;
+    button.onclick = onClick;
+    return button;
+}
+
+// Helper function to copy text from a textarea using Clipboard API
+function copyText(textarea, document) {
+    textarea.focus(); // Focus the textarea
+    textarea.select(); // Select the text
+
+    // Ensure the document is focused
+    if (document.hasFocus()) {
+        navigator.clipboard.writeText(textarea.value)
+            .catch(() => {
+                // Fallback to execCommand if Clipboard API fails
+                document.execCommand('copy');
+            });
+    } else {
+        // Fallback to execCommand if the document is not focused
+        document.execCommand('copy');
+    }
+}
+
+// Call the function to create the converter
+createConverter();
