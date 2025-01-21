@@ -6,7 +6,7 @@ function createConverter() {
     if (newWindow) {
         newWindow.focus();
     } else {
-        return; // If the window couldn't be opened, exit the function
+        return; // Exit if the window couldn't be opened
     }
 
     // Create a container for the UI elements
@@ -20,33 +20,60 @@ function createConverter() {
     const newTitlesBox = createTextArea(newWindow.document, 'Enter new titles here (one per line)...', '#007bff', '150px');
     const oldTitlesBox = createTextAreaWithCopy(newWindow.document, 'Enter old titles here (one per line)...', '#28a745', '150px');
 
+    // Create a div to display the counts for conversion
+    const countDisplay = newWindow.document.createElement('div');
+    countDisplay.style = `margin: 10px; font-size: 14px; color: #333; text-align: center;`;
+    countDisplay.textContent = 'Results will appear here after conversion.';
+
     const convertButton = createButton(newWindow.document, 'Convert', '#007bff', () => {
         const newTitles = newTitlesBox.value.trim().split('\n').filter(title => title.trim() !== '');
-        const oldTitles = oldTitlesBox.querySelector('textarea').value.split('\n'); // Keep all lines, including empty ones
+        const oldTitles = oldTitlesBox.querySelector('textarea').value.split('\n');
 
-        if (newTitles.length === 0 || oldTitles.length === 0 || newTitles.length !== oldTitles.filter(title => title.trim().startsWith('Title: ')).length) return;
+        // Filter old titles that start with "Title: "
+        const oldTitleLines = oldTitles.filter(line => line.trim().startsWith('Title: '));
 
+        // Replace old titles with new titles (only for matching indices)
         let newIndex = 0;
-        oldTitlesBox.querySelector('textarea').value = oldTitles.map(oldTitle => 
-            oldTitle.trim().startsWith('Title: ') ? `Title: ${newTitles[newIndex++]}` : oldTitle
-        ).join('\n');
+        let replacedCount = 0;
+        oldTitlesBox.querySelector('textarea').value = oldTitles.map(oldTitle => {
+            if (oldTitle.trim().startsWith('Title: ') && newIndex < newTitles.length) {
+                const newTitle = `Title: ${newTitles[newIndex]}`;
+                newIndex++;
+                replacedCount++;
+                return newTitle;
+            }
+            return oldTitle; // Keep non-title lines or extra titles unchanged
+        }).join('\n');
+
+        // Update the count display
+        countDisplay.textContent = `Old Titles Found: ${oldTitleLines.length}, New Titles Found: ${newTitles.length}, Titles Replaced: ${replacedCount}`;
     });
 
-    leftContainer.append(newTitlesBox, oldTitlesBox, convertButton);
+    leftContainer.append(newTitlesBox, oldTitlesBox, convertButton, countDisplay);
 
     // Right Container (Cleaned Titles, Clean Button)
     const rightContainer = newWindow.document.createElement('div');
     rightContainer.style = `display: flex; flex-direction: column; align-items: center;`;
 
-    const cleanedTitlesBox = createTextAreaWithCopy(newWindow.document, 'Cleaned titles will appear here...', '#dc3545', '320px'); // Adjusted height
+    const cleanedTitlesBox = createTextAreaWithCopy(newWindow.document, 'Cleaned titles will appear here...', '#dc3545', '320px');
+
+    // Create a div to display the count of cleaned titles
+    const cleanCountDisplay = newWindow.document.createElement('div');
+    cleanCountDisplay.style = `margin: 10px; font-size: 14px; color: #333; text-align: center;`;
+    cleanCountDisplay.textContent = 'Cleaned titles count will appear here.';
+
     const cleanButton = createButton(newWindow.document, 'Clean Titles', '#dc3545', () => {
-        cleanedTitlesBox.querySelector('textarea').value = cleanedTitlesBox.querySelector('textarea').value.split('\n')
+        const cleanedTitles = cleanedTitlesBox.querySelector('textarea').value.split('\n')
             .filter(line => line.trim().startsWith('Title: '))
-            .map(line => line.replace('Title: ', ''))
-            .join('\n\n');
+            .map(line => line.replace('Title: ', ''));
+
+        cleanedTitlesBox.querySelector('textarea').value = cleanedTitles.join('\n\n');
+
+        // Update the clean count display
+        cleanCountDisplay.textContent = `Titles Cleaned: ${cleanedTitles.length}`;
     });
 
-    rightContainer.append(cleanedTitlesBox, cleanButton);
+    rightContainer.append(cleanedTitlesBox, cleanButton, cleanCountDisplay);
 
     // Append to Main Container and Body
     container.append(leftContainer, rightContainer);
